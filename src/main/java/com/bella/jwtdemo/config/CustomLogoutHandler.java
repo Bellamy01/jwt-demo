@@ -25,12 +25,11 @@ public class CustomLogoutHandler implements LogoutHandler {
         }
 
         String token = authHeader.substring(7);
-        // Blacklist the token
+
         Token storedToken = tokenRepository.findByToken(token).orElse(null);
         if (storedToken != null) {
             storedToken.setLoggedOut(true);
             tokenRepository.save(storedToken);
         }
-
     }
 }
