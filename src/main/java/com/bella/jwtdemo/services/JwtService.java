@@ -1,5 +1,6 @@
 package com.bella.jwtdemo.services;
 
+import com.bella.jwtdemo.repositories.TokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -14,11 +15,16 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
+    private final TokenRepository tokenRepository;
     @Value("${application.security.jwt.secret-key}")
     private String secret_key;
 
     @Value("${application.security.jwt.expiration}")
     private Long expiration;
+
+    public JwtService(TokenRepository tokenRepository) {
+        this.tokenRepository = tokenRepository;
+    }
 
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64URL.decode(secret_key);
@@ -34,7 +40,9 @@ public class JwtService {
     }
 
     public Boolean isValid(String token, UserDetails user) {
-        return (extractUsername(token).equals(user.getUsername()) && !isTokenExpired(token));
+        boolean isValidToken = tokenRepository.findByToken(token)
+                .map(t -> !t.isLoggedOut()).orElse(false);
+        return (extractUsername(token).equals(user.getUsername()) && isValidToken);
     }
 
     public Boolean isTokenExpired(String token) {
