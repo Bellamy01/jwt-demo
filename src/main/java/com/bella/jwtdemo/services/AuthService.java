@@ -5,8 +5,14 @@ import com.bella.jwtdemo.models.User;
 import com.bella.jwtdemo.repositories.TokenRepository;
 import com.bella.jwtdemo.repositories.UserRepository;
 import com.bella.jwtdemo.responses.AuthenticationResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -39,10 +45,11 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         userRepository.save(user);
 
-        String jwt = jwtService.generateToken(user.getUsername());
-        saveToken(jwt, user);
+        String accessToken = jwtService.generateAccessToken(user.getUsername());
+        String refreshToken = jwtService.generateRefreshToken(user.getUsername());
+        saveToken(accessToken, user);
 
-        return new AuthenticationResponse(jwt);
+        return new AuthenticationResponse(accessToken, refreshToken);
     }
 
     public AuthenticationResponse authenticate(User request) {
@@ -54,11 +61,12 @@ public class AuthService {
         );
 
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
-        String jwt = jwtService.generateToken(user.getUsername());
+        String accessToken = jwtService.generateAccessToken(user.getUsername());
+        String refreshToken = jwtService.generateRefreshToken(user.getUsername());
         revokeAllTokensByUser(user);
-        saveToken(jwt, user);
+        saveToken(accessToken, user);
 
-        return new AuthenticationResponse(jwt);
+        return new AuthenticationResponse(accessToken, refreshToken);
     }
 
     private void saveToken(String token, User user) {
@@ -77,5 +85,28 @@ public class AuthService {
         }
 
         tokenRepository.saveAll(validTokenListByUser);
+    }
+
+    public ResponseEntity<AuthenticationResponse> refreshToken(
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        String token = authHeader.substring(7);
+        String username = jwtService.extractUsername(token);
+        User user = userRepository.findByUsername(username).orElseThrow(
+                () -> new UsernameNotFoundException("User not found")
+        );
+        if (jwtService.isValidRefreshToken(token, user)) {
+            String newAccessToken = jwtService.generateAccessToken(username);
+            String newRefreshToken = jwtService.generateRefreshToken(username);
+            revokeAllTokensByUser(user);
+            saveToken(newAccessToken, user);
+            return ResponseEntity.ok(new AuthenticationResponse(newAccessToken, newRefreshToken));
+        }
+        return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
     }
 }

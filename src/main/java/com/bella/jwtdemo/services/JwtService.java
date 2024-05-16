@@ -1,5 +1,6 @@
 package com.bella.jwtdemo.services;
 
+import com.bella.jwtdemo.models.User;
 import com.bella.jwtdemo.repositories.TokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -19,8 +20,11 @@ public class JwtService {
     @Value("${application.security.jwt.secret-key}")
     private String secret_key;
 
-    @Value("${application.security.jwt.expiration}")
-    private Long expiration;
+    @Value("${application.security.jwt.access-token-expiration}")
+    private Long accessTokenExpiration;
+
+    @Value("${application.security.jwt.refresh-token-expiration}")
+    private Long refreshTokenExpiration;
 
     public JwtService(TokenRepository tokenRepository) {
         this.tokenRepository = tokenRepository;
@@ -64,13 +68,25 @@ public class JwtService {
                 .getPayload();
     }
 
-    public String generateToken(String username) {
+    public String generateAccessToken(String username) {
+        return generateToken(username, accessTokenExpiration);
+    }
+
+    public String generateRefreshToken(String username) {
+        return generateToken(username, refreshTokenExpiration);
+    }
+
+    public String generateToken(String username, long expirationTime) {
         return Jwts
                 .builder()
                 .subject(username)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSignInKey())
                 .compact();
+    }
+
+    public boolean isValidRefreshToken(String token, User user) {
+        return (extractUsername(token).equals(user.getUsername()) && !isTokenExpired(token));
     }
 }
