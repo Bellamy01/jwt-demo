@@ -39,7 +39,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req ->
                         req
-                                .requestMatchers("/login", "/register").permitAll()
+                                .requestMatchers("/auth/v1/**", "/oauth2/v1/token").permitAll()
                                 .requestMatchers("/dashboard/**").hasAuthority("ROLE_ADMIN")
                                 .anyRequest().authenticated()
                 )
@@ -54,9 +54,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessHandler((req, res, auth) -> {
-                            SecurityContextHolder.clearContext();
-                        })
+                        .logoutSuccessHandler((req, res, auth) -> SecurityContextHolder.clearContext())
                         .addLogoutHandler(customLogoutHandler)
                 )
                 .build();

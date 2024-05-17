@@ -47,7 +47,7 @@ public class AuthService {
 
         String accessToken = jwtService.generateAccessToken(user.getUsername());
         String refreshToken = jwtService.generateRefreshToken(user.getUsername());
-        saveToken(accessToken, user);
+        saveToken(accessToken, refreshToken, user);
 
         return new AuthenticationResponse(accessToken, refreshToken);
     }
@@ -64,14 +64,15 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(user.getUsername());
         String refreshToken = jwtService.generateRefreshToken(user.getUsername());
         revokeAllTokensByUser(user);
-        saveToken(accessToken, user);
+        saveToken(accessToken, refreshToken, user);
 
         return new AuthenticationResponse(accessToken, refreshToken);
     }
 
-    private void saveToken(String token, User user) {
+    private void saveToken(String accessToken, String refreshToken, User user) {
         Token tokenEntity = new Token();
-        tokenEntity.setToken(token);
+        tokenEntity.setAccessToken(accessToken);
+        tokenEntity.setRefreshToken(refreshToken);
         tokenEntity.setUser(user);
         tokenRepository.save(tokenEntity);
     }
@@ -79,9 +80,7 @@ public class AuthService {
     private void revokeAllTokensByUser(User user) {
         List<Token> validTokenListByUser = tokenRepository.findAllByUserId(user.getId());
         if (!validTokenListByUser.isEmpty()) {
-            validTokenListByUser.forEach(token -> {
-                token.setLoggedOut(true);
-            });
+            validTokenListByUser.forEach(token -> token.setLoggedOut(true));
         }
 
         tokenRepository.saveAll(validTokenListByUser);
@@ -104,7 +103,7 @@ public class AuthService {
             String newAccessToken = jwtService.generateAccessToken(username);
             String newRefreshToken = jwtService.generateRefreshToken(username);
             revokeAllTokensByUser(user);
-            saveToken(newAccessToken, user);
+            saveToken(newAccessToken, newRefreshToken, user);
             return ResponseEntity.ok(new AuthenticationResponse(newAccessToken, newRefreshToken));
         }
         return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);

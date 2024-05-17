@@ -5,11 +5,13 @@ import com.bella.jwtdemo.repositories.TokenRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
+@RequestMapping("/auth/v1")
 public class TokenController {
     private final TokenRepository tokenRepository;
 
