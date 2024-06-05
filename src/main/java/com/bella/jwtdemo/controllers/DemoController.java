@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class DemoController {
     @GetMapping("/")
     public ResponseEntity<String> getHome() {
-        return ResponseEntity.ok("Welcome to the homepage");
+
+        return ResponseEntity.ok("Welcome to the home page");
     }
 
     @GetMapping("/dashboard")
